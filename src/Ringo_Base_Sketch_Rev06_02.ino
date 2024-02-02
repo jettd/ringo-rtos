@@ -7,6 +7,7 @@ void taskLights( void *pvParameters);
 void taskMove( void *pvParameters);
 void taskStop (void *pvParameters);
 void taskChirp(void *pvParameters);
+void taskRickRoll(void *pvParameters);
 void taskTest( void *pvParameters);
 
 void setup(){
@@ -17,14 +18,14 @@ void setup(){
 
   //SwitchButtonToPixels();
 
-  xTaskCreate(
-    TaskStop
-    , (const portCHAR *)"stop"
-    , 128
-    , NULL
-    , 1
-    , NULL
-  );
+  // xTaskCreate(
+  //   TaskStop
+  //   , (const portCHAR *)"stop"
+  //   , 128
+  //   , NULL
+  //   , 1
+  //   , NULL
+  // );
 
   // xTaskCreate(
   //   TaskMove
@@ -44,7 +45,7 @@ void setup(){
   //   , NULL
   // );
 
-  xTaskCreate(TaskChirp, "chirp", 128, NULL, 4, NULL);
+  xTaskCreate(TaskRickRoll, "rick", 128, NULL, 4, NULL);
 }
 
 void TaskLights(void *pvParameters) {
@@ -104,145 +105,155 @@ void TaskStop(void *pvParameters) {
   }
 }
 
-void TaskChirp(void *pvParameters) {
-  int t = 280;
-  int q_note = t/portTICK_PERIOD_MS;
-  int h_note = q_note * 2;
-  int w_note = h_note * 2;
-  int amp = 20;
-  int high_amp = amp*1.1;
-  int q_rest = q_note;
-  int h_rest = h_note;
+void TaskRickRoll(void *pvParameters) {
+  (void) pvParameters;
   for(;;) {
-    //"... give you up..."
+    int bpm = 114; //reference
+    int note = 2105/portTICK_PERIOD_MS;
+    int h_note = note/2;
+    int q_note = note/4;
+    int e_note = note/8;
+    int s_note = note/16;
+    double dot = 1.5;
+    int amp = 50;
+
+    //s s s s e. e. q. 
+    // never gonna give you up
     PlayChirp(NOTE_D4, amp);
-    vTaskDelay(q_note); // Quarter note
+    vTaskDelay(s_note);
     PlayChirp(NOTE_E4, amp);
-    vTaskDelay(q_note);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_G4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_B5, amp);
+    vTaskDelay(e_note*dot); 
+    PlayChirp(NOTE_B5, amp);
+    vTaskDelay(e_note*dot); 
+    PlayChirp(NOTE_A5, amp);
+    vTaskDelay(q_note*dot);
+
+    //never gonna let you down
+    // s s s s e. e. e. s e 
+    PlayChirp(NOTE_D4, amp);
+    vTaskDelay(s_note); 
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_G4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_A5, amp);
+    vTaskDelay(e_note*dot); 
+    PlayChirp(NOTE_A5, amp);
+    vTaskDelay(e_note*dot);
+    PlayChirp(NOTE_G4, amp);
+    vTaskDelay(e_note*dot);
+    PlayChirp(NOTE_F4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(e_note);
+
+    //never gonna run around and desert you    
+    // s s s s q e e. s e e e q h 
+    PlayChirp(NOTE_D4, amp);
+    vTaskDelay(s_note); 
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_G4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
     PlayChirp(NOTE_G4, amp);
     vTaskDelay(q_note);
+    PlayChirp(NOTE_A5, amp);
+    vTaskDelay(e_note);
+    PlayChirp(NOTE_F4, amp);
+    vTaskDelay(e_note*dot);
     PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_D4, amp);
+    vTaskDelay(e_note);
+    PlayChirp(NOTE_D4, amp);
+    vTaskDelay(e_note);
+    PlayChirp(NOTE_D4, amp);
+    vTaskDelay(e_note);
+    PlayChirp(NOTE_A5, amp);
     vTaskDelay(q_note);
-    PlayChirp(NOTE_B4, high_amp);
-    vTaskDelay(h_note); // Half note
-    PlayChirp(NOTE_B4, high_amp);
-    vTaskDelay(q_note); // Quarter note again
-    PlayChirp(NOTE_A4, high_amp);
+    PlayChirp(NOTE_G4, amp);
+    vTaskDelay(h_note);
+
+    // never gonna make you cry
+    // s s s s e. e. q. 
+    PlayChirp(NOTE_D4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_G4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_B5, amp);
+    vTaskDelay(e_note*dot); 
+    PlayChirp(NOTE_B5, amp);
+    vTaskDelay(e_note*dot); 
+    PlayChirp(NOTE_A5, amp);
+    vTaskDelay(q_note*dot);
+
+    //never gonna say goodbye
+    // s s s s q e e. s e 
+    PlayChirp(NOTE_D4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_G4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_D5, amp);
+    vTaskDelay(q_note); 
+    PlayChirp(NOTE_F4, amp);
+    vTaskDelay(e_note); 
+    PlayChirp(NOTE_G4, amp);
+    vTaskDelay(e_note*dot);
+    PlayChirp(NOTE_F4, amp);
+    vTaskDelay(s_note); 
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(e_note);
+
+    //never gonna tell a lie and hurt you
+    // s s s s q e e. s q e q h
+    PlayChirp(NOTE_D4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_G4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_G4, amp);
     vTaskDelay(q_note);
+    PlayChirp(NOTE_A5, amp);
+    vTaskDelay(e_note);
+    PlayChirp(NOTE_F4, amp);
+    vTaskDelay(e_note*dot);
+    PlayChirp(NOTE_E4, amp);
+    vTaskDelay(s_note);
+    PlayChirp(NOTE_D4, amp);
+    vTaskDelay(q_note);
+    PlayChirp(NOTE_D4, amp);
+    vTaskDelay(e_note);
+    PlayChirp(NOTE_A5, amp);
+    vTaskDelay(q_note);
+    PlayChirp(NOTE_G4, amp);
+    vTaskDelay(h_note);
 
     OffChirp();
-    vTaskDelay(h_rest);
-
-    //...let you down...
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_A4, amp);
-    vTaskDelay(h_note); // Half note
-    PlayChirp(NOTE_A4, high_amp);
-    vTaskDelay(q_note); // Quarter note again
-    PlayChirp(NOTE_G4, high_amp);
-    vTaskDelay(h_note);
-    PlayChirp(NOTE_D4, high_amp);
-
-    OffChirp();
-    vTaskDelay(h_rest);
-
-    //...run around...
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(q_note); // Quarter note
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_A4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_F4, amp); //maybe 4?
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(h_note);
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_A4, high_amp);
-    vTaskDelay(h_note);
-    PlayChirp(NOTE_G4, high_amp);
-    vTaskDelay(h_note);
-
-    OffChirp();
-    vTaskDelay(2*h_rest);
-
-    //..make you cry..
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_B4, amp);
-    vTaskDelay(h_note);
-    PlayChirp(NOTE_B4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_A4, amp);
-    vTaskDelay(h_note);
-
-    OffChirp();
-    vTaskDelay(q_rest);
-
-    //...say goodbye...
-    vTaskDelay(q_note); // Quarter note
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_D5, high_amp); // lower octave D, need to adjust frequency if available
-    vTaskDelay(h_note);
-    PlayChirp(NOTE_FS4, high_amp);
-    vTaskDelay(h_note);
-    PlayChirp(NOTE_G4, high_amp);
-    vTaskDelay(h_note); // Half note
-
-    OffChirp();
-    vTaskDelay(q_rest);
-
-    //...tell a like
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(q_note); // Quarter note
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(h_note);
-    PlayChirp(NOTE_A4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_FS4, amp);
-    vTaskDelay(h_note);
-    PlayChirp(NOTE_D5, amp); // lower octave D, need to adjust frequency if available
-    vTaskDelay(h_note);
-    PlayChirp(NOTE_A4, amp);
-    vTaskDelay(h_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(w_note);
-
-    OffChirp();
-    vTaskDelay(3000/portTICK_PERIOD_MS);
+    vTaskDelay(4000/portTICK_PERIOD_MS);
   }
 }
+
 
 void TaskTest(void *pvParameters)  // This is a task.
 {
@@ -275,6 +286,7 @@ void TaskTest(void *pvParameters)  // This is a task.
     
 void loop(){ 
 } // end of loop() function
+
 
 
 
