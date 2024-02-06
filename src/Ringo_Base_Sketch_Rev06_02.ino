@@ -13,7 +13,8 @@ void setup(){
   SwitchMotorsToSerial(); //Call "SwitchMotorsToSerial()" before using Serial.print functions as motors & serial share a line
   RestartTimer();
 
-  xTaskCreate(TaskLightShow, "lights", 128, NULL, 5, NULL);
+  // xTaskCreate(TaskLights, "rainbow", 128, NULL 2, NULL);
+  xTaskCreate(TaskFancyLights, "lights", 128, NULL, 5, NULL);
   xTaskCreate(TaskRickRoll, "rick", 128, NULL, 10, NULL);
 }
 
@@ -49,9 +50,9 @@ void TaskLights(void *pvParameters) {
     for(int i =0; i < 6; i++){
       SetPixelRGB(i, 80, 80, 80);
     }
-    vTaskDelay(500/portTICK_PERIOD_MS);
+    vTaskDelay(100/portTICK_PERIOD_MS);
     SetAllPixelsRGB(0,0,0);
-    vTaskDelay(3000/portTICK_PERIOD_MS);
+    vTaskDelay(4000/portTICK_PERIOD_MS);
   }
 }
 
@@ -65,7 +66,7 @@ void TaskRickRoll(void *pvParameters) {
     int e_note = note/8;
     int s_note = note/16;
     double dot = 1.5;
-    int amp = 50;
+    int amp = 80;
 
     //s s s s e. e. q. 
     // never gonna give you up
