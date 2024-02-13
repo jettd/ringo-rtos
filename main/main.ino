@@ -12,12 +12,22 @@ void setup(){
   PlayStartChirp();       //Play startup chirp and blink eyes
   SwitchMotorsToSerial(); //Call "SwitchMotorsToSerial()" before using Serial.print functions as motors & serial share a line
   RestartTimer();
+<<<<<<< HEAD
   Serial.begin(9600);     //Starts Serial Connection      
 
   // xTaskCreate(TaskLights, "rainbow", 128, NULL 2, NULL);
   // xTaskCreate(TaskFancyLights, "lights", 128, NULL, 5, NULL);
   // xTaskCreate(TaskRickRoll, "rick", 128, NULL, 10, NULL);
   xTaskCreate(TaskSense, "sense", 128, NULL, 10, NULL);
+=======
+  
+  randomSeed(analogRead(0));  //For motor random walk seed. should read noise
+
+  // xTaskCreate(TaskLights, "rainbow", 128, NULL, 2, NULL);
+  xTaskCreate(TaskFancyLights, "lights", 128, NULL, 5, NULL);
+  xTaskCreate(TaskRickRoll, "rick", 128, NULL, 10, NULL);
+  // xTaskCreate(TaskRandomWalk, "random_walk", 128, NULL, 15, NULL);
+>>>>>>> 3c93b445c8f8cf2cf1f455aacee15e812e5deea7
 }
 
 void TaskSense(void *pvParameters) { // Aperiodic, how do we make them aperiodic?
@@ -336,6 +346,16 @@ void TaskFancyLights(void *pvParameters) {
     // Reset LEDs before the loop repeats
     SetAllPixelsRGB(0, 0, 0); // Off
     vTaskDelay(4000/portTICK_PERIOD_MS); // Pause between loops
+  }
+}
+
+void TaskRandomWalk(void *pvParameters) {
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  for(;;) {
+    int l = random(20, 100);
+    int r = random(20, 100);
+    Motors(l, r);
+    vTaskDelayUntil(&xLastWakeTime, 1000/portTICK_PERIOD_MS);
   }
 }
 
