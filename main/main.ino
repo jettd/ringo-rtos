@@ -4,30 +4,42 @@
 //int i;    //declaire any global variables here
 
 void taskLights( void *pvParameters);
-void taskFancyLights(void *pvParameters);
-void taskRickRoll(void *pvParameters);
+void taskIRLights( void *pvParameters);
+void taskMove( void *pvParameters);
 
 void setup(){
   HardwareBegin();        //initialize Ringo's brain to work with his circuitry
   PlayStartChirp();       //Play startup chirp and blink eyes
   SwitchMotorsToSerial(); //Call "SwitchMotorsToSerial()" before using Serial.print functions as motors & serial share a line
   RestartTimer();
-<<<<<<< HEAD
+  RxIRRestart(4);
   Serial.begin(9600);     //Starts Serial Connection      
-
-  // xTaskCreate(TaskLights, "rainbow", 128, NULL 2, NULL);
-  // xTaskCreate(TaskFancyLights, "lights", 128, NULL, 5, NULL);
-  // xTaskCreate(TaskRickRoll, "rick", 128, NULL, 10, NULL);
-  xTaskCreate(TaskSense, "sense", 128, NULL, 10, NULL);
-=======
   
   randomSeed(analogRead(0));  //For motor random walk seed. should read noise
 
-  // xTaskCreate(TaskLights, "rainbow", 128, NULL, 2, NULL);
-  xTaskCreate(TaskFancyLights, "lights", 128, NULL, 5, NULL);
-  xTaskCreate(TaskRickRoll, "rick", 128, NULL, 10, NULL);
-  // xTaskCreate(TaskRandomWalk, "random_walk", 128, NULL, 15, NULL);
->>>>>>> 3c93b445c8f8cf2cf1f455aacee15e812e5deea7
+  xTaskCreate(TaskLights, "rainbow", 128, NULL, 2, NULL);
+  xTaskCreate(TaskIRLights, "button_light", 128, NULL, 10, NULL);
+  xTaskCreate(TaskMove, "random_walk", 128, NULL, 8, NULL);
+}
+
+void TaskIRLights(void *pvParameters) {
+  (void) pvParameters;
+  for (;;) {
+    if(IsIRDone()) {
+      cli();
+      byte ir_button = GetIRButton();
+      if (ir_button == 18) {
+        SetPixelRGB(TAIL_BOTTOM, 100, 0, 0);
+      } else if (ir_button == 19) {
+        SetPixelRGB(TAIL_BOTTOM, 0, 100, 0);
+      } else if (ir_button == 20) {
+        SetPixelRGB(TAIL_BOTTOM, 0, 0, 100);
+      }
+    }
+    sei();
+    vTaskDelay(500/portTICK_PERIOD_MS);
+  }
+  
 }
 
 void TaskSense(void *pvParameters) { // Aperiodic, how do we make them aperiodic?
@@ -115,7 +127,7 @@ void TaskRickRoll(void *pvParameters) { // Sporadic Task
     int e_note = note/8;
     int s_note = note/16;
     double dot = 1.5;
-    int amp = 80;
+    int amp = 10;
 
     //s s s s e. e. q. 
     // never gonna give you up
@@ -349,7 +361,7 @@ void TaskFancyLights(void *pvParameters) {
   }
 }
 
-void TaskRandomWalk(void *pvParameters) {
+void TaskMove(void *pvParameters) {
   TickType_t xLastWakeTime = xTaskGetTickCount();
   for(;;) {
     int l = random(20, 100);
