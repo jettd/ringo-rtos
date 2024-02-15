@@ -6,6 +6,7 @@
 void taskLights( void *pvParameters);
 void taskIRLights( void *pvParameters);
 void taskMove( void *pvParameters);
+void taskLineSense( void *pvParameters);
 
 void setup(){
   HardwareBegin();        //initialize Ringo's brain to work with his circuitry
@@ -17,9 +18,28 @@ void setup(){
   
   randomSeed(analogRead(0));  //For motor random walk seed. should read noise
 
-  xTaskCreate(TaskLights, "rainbow", 128, NULL, 2, NULL);
+  // xTaskCreate(TaskLights, "rainbow", 128, NULL, 2, NULL);
   xTaskCreate(TaskIRLights, "button_light", 128, NULL, 10, NULL);
   xTaskCreate(TaskMove, "random_walk", 128, NULL, 8, NULL);
+  xTaskCreate(TaskLineSense, "line_sense", 128, NULL, 5, NULL);
+}
+
+void TaskLineSense(void *pvParameters) {
+  (void) pvParameters;
+  for(;;) {
+    int left, right, back;
+    left = ReadLeftLightSensor();
+    right = ReadRightLightSensor();
+    back = ReadRearLightSensor();
+    if (back > left && back > right) {
+      //back brighter
+      SetAllPixelsRGB(100, 40, 20);
+    } else {
+      //right brighter
+      SetAllPixelsRGB(150, 0, 150);
+    }
+    vTaskDelay(5);
+  }
 }
 
 void TaskIRLights(void *pvParameters) {
