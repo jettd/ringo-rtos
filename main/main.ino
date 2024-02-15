@@ -35,11 +35,10 @@ void TaskIRLights(void *pvParameters) {
       } else if (ir_button == 20) {
         SetPixelRGB(TAIL_BOTTOM, 0, 0, 100);
       }
+      sei();
     }
-    sei();
-    vTaskDelay(500/portTICK_PERIOD_MS);
+    vTaskDelay(100/portTICK_PERIOD_MS);
   }
-  
 }
 
 void TaskSense(void *pvParameters) { // Aperiodic, how do we make them aperiodic?
