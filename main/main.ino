@@ -1,7 +1,6 @@
 #include <Arduino_FreeRTOS.h>
 #include "RingoHardware.h"
 
-//int i;    //declaire any global variables here
 char edge;
 TaskHandle_t xRandomWalkHandle;
 TaskHandle_t xTaskRickRollHandle;
@@ -253,101 +252,6 @@ void TaskRickRoll(void *pvParameters) { // Sporadic Task, don't respond to butto
 
     OffChirp();
     vTaskDelay(4000/portTICK_PERIOD_MS);
-  }
-}
-
-void TaskFancyLights(void *pvParameters) {
-  (void) pvParameters;
-  int note = 2105/portTICK_PERIOD_MS; // Base note duration for timing
-  int h_note = note/2;
-  int q_note = note/4;
-  int e_note = note/8;
-  int s_note = note/16;
-  double dot = 1.5;
-
-  for (;;) {
-    // Reset lights at the beginning
-    SetAllPixelsRGB(0, 0, 0);
-    vTaskDelay(100/portTICK_PERIOD_MS);
-
-    // Firework Effect: From tail to head, then eyes as finale
-    int fireworkColors[][3] = {{255, 69, 0}, {255, 215, 0}, {65, 105, 225}, {34, 139, 34}, {148, 0, 211}, {255, 20, 147}};
-    for (int i = 5; i >= 2; i--) { // Start from TAIL_BOTTOM to BODY_TOP
-      SetPixelRGB(i, fireworkColors[5-i][0], fireworkColors[5-i][1], fireworkColors[5-i][2]);
-      vTaskDelay(q_note);
-    }
-    // Eyes finale
-    SetPixelRGB(0, fireworkColors[4][0], fireworkColors[4][1], fireworkColors[4][2]); // EYE_LEFT
-    SetPixelRGB(1, fireworkColors[5][0], fireworkColors[5][1], fireworkColors[5][2]); // EYE_RIGHT
-    vTaskDelay(h_note);
-    SetAllPixelsRGB(0, 0, 0); // Reset after explosion
-    vTaskDelay(s_note);
-
-    // Random flashes with a focus on eyes for "never gonna give you up"
-    for (int beat = 0; beat < 16; beat++) {
-      SetPixelRGB(0, rand() % 256, rand() % 256, rand() % 256); // EYE_LEFT
-      SetPixelRGB(1, rand() % 256, rand() % 256, rand() % 256); // EYE_RIGHT
-      if (beat % 4 == 0) { // Every fourth beat, light up the body and tail
-        SetPixelRGB(2, 255, 255, 255); // BODY_TOP
-        SetPixelRGB(5, 255, 255, 255); // TAIL_BOTTOM
-      }
-      vTaskDelay(s_note);
-      SetAllPixelsRGB(0, 0, 0); // Reset quickly for a strobe effect
-      vTaskDelay(s_note);
-    }
-
-    // Chase effect: Simulate a "running" pattern from head to tail
-    for (int chase = 0; chase < 6; chase++) {
-      SetAllPixelsRGB(0, 0, 0); // Reset before starting chase
-      for (int i = 0; i < 6; i++) {
-        SetPixelRGB((chase + i) % 6, 0, (255 - (42 * i)), (42 * i)); // Create a gradient effect
-        vTaskDelay(s_note / 2);
-      }
-    }
-
-    // Strobe effect with eyes and body for the chorus, tail for rhythm
-    for (int strobe = 0; strobe < 20; strobe++) {
-      SetPixelRGB(0, 255, 255, 255); // EYE_LEFT
-      SetPixelRGB(1, 255, 255, 255); // EYE_RIGHT
-      if (strobe % 2 == 0) {
-        SetPixelRGB(3, 255, 0, 0); // BODY_BOTTOM
-        SetPixelRGB(4, 255, 0, 0); // TAIL_TOP
-      } else {
-        SetPixelRGB(2, 0, 255, 0); // BODY_TOP
-        SetPixelRGB(5, 0, 255, 0); // TAIL_BOTTOM
-      }
-      vTaskDelay(s_note / 4);
-      SetAllPixelsRGB(0, 0, 0); // Off
-      vTaskDelay(s_note / 4);
-    }
-
-    // Breathing effect: Slow glow in the body, with eyes and tail providing accents
-    for (int breath = 0; breath < 255; breath += 15) {
-      SetPixelRGB(2, breath, 0, breath); // BODY_TOP
-      SetPixelRGB(3, 0, breath, breath); // BODY_BOTTOM
-      if (breath % 30 == 0) { // Accent with eyes and tail
-        SetPixelRGB(0, 255 - breath, breath, 255); // EYE_LEFT
-        SetPixelRGB(1, breath, 255 - breath, 255); // EYE_RIGHT
-        SetPixelRGB(4, 255, 255 - breath, breath); // TAIL_TOP
-        SetPixelRGB(5, breath, 255, 255 - breath); // TAIL_BOTTOM
-      }
-      vTaskDelay(s_note / 4);
-    }
-    for (int breath = 255; breath > 0; breath -= 15) {
-      SetPixelRGB(2, breath, 0, breath); // BODY_TOP
-      SetPixelRGB(3, 0, breath, breath); // BODY_BOTTOM
-      if (breath % 30 == 0) {
-        SetPixelRGB(0, 255 - breath, breath, 255); // EYE_LEFT
-        SetPixelRGB(1, breath, 255 - breath, 255); // EYE_RIGHT
-        SetPixelRGB(4, 255, 255 - breath, breath); // TAIL_TOP
-        SetPixelRGB(5, breath, 255, 255 - breath); // TAIL_BOTTOM
-      }
-      vTaskDelay(s_note / 4);
-    }
-
-    // Reset LEDs before the loop repeats
-    SetAllPixelsRGB(0, 0, 0); // Off
-    vTaskDelay(4000/portTICK_PERIOD_MS); // Pause between loops
   }
 }
 
