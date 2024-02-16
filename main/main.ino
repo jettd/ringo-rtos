@@ -64,7 +64,7 @@ void TaskIRLights(void *pvParameters) {
 void TaskSense(void *pvParameters) { // Aperiodic, how do we make them aperiodic?
   (void) pvParameters;
   digitalWrite(Source_Select, HIGH); // Select sensors on top(HIGH) or bottom(LOW) of ringo
-  int frontSensor;
+  intSensor;
   int rearSensor;
   // for(;;){ // Testing
   //   frontSensor = analogRead(LightSense_Left);
