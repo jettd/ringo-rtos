@@ -5,6 +5,7 @@
 TaskHandle_t xEdgeHandler;
 TaskHandle_t xCornerHandler;
 volatile int target;
+int GetDegreesMod(void);
 
 void setup(){
   HardwareBegin();        //initialize Ringo's brain to work with his circuitry
@@ -19,7 +20,6 @@ void setup(){
 
   xTaskCreate(TaskEdge, "edge", 128, NULL, 1, &xEdgeHandler);
   xTaskCreate(TaskCorner, "corner", 128, NULL, 1, &xCornerHandler);
-  // xTaskCreate(TaskTest, "test", 128, NULL, 10, NULL);
 
   
   vTaskSuspend(xCornerHandler);
@@ -30,12 +30,15 @@ void TaskEdge(void* pvParameters) {
 
   for (;;) {
     Motors(0, 0);
+    vTaskDelay(100/portTICK_PERIOD_MS); //to give it a second to stop
+
     SimpleGyroNavigation();
     SetPixelRGB(TAIL_TOP, 50, 0, 0);
-    float duration = 5;
+    float duration = 2;
     float interval = 0.1;
     //pid loop
-    float Kp = 5.0;
+    //Jetts desk
+    float Kp = 2.5;
     float Ki = 0.0;
     float Kd = 0.0;
 
@@ -43,10 +46,12 @@ void TaskEdge(void* pvParameters) {
     int error_last = 0;
     int error_total = 0;
     ZeroNavigation();
+    vTaskDelay(100/portTICK_PERIOD_MS); //to give it a second to calibrate
+
     int target = GetDegrees(); //target is same as now
 
-    int left = 30;
-    int right = 30;
+    int left = 80;
+    int right = 80;
     int delta;
 
     //pid loop
@@ -55,10 +60,10 @@ void TaskEdge(void* pvParameters) {
       error = target - GetDegrees();
       error_total += error;
 
-      delta = Kp*error + Ki*error_total + Kd*error_last;
+      delta = Kp*error + Ki*error_total + Kd*(error-error_last);
 
-      int out_left = max(0, min(left + delta, 60));
-      int out_right = max(0, min(right - delta, 60));
+      int out_left = max(0, min(left + delta, 120));
+      int out_right = max(0, min(right - delta, 120));
 
       //visualize motors
       SetPixelRGB(EYE_LEFT, 0, 0, out_left);
@@ -84,50 +89,74 @@ void TaskCorner(void* pvParameters) {
   NavigationBegin();
 
   for (;;) {
+    Motors(0, 0);
+    vTaskDelay(100/portTICK_PERIOD_MS); //to give it a second to calibrate
+
     SetPixelRGB(TAIL_TOP, 0, 50, 0);
-    //replace this 2 second delay with the correct use of navigation library to turn 90 degrees right.
-    vTaskDelay(3000/portTICK_PERIOD_MS);
+    SimpleNavigation();
 
+    float interval = 0.1;
+    //pid loop; constants for Jett's desk.
+    float Kp = 3.5;
+    float Ki = 0.25;
+    float Kd = 1.5;
 
+    int error = 0;
+    int error_last = 0;
+    int error_total = 0;
     ZeroNavigation();
+    vTaskDelay(100/portTICK_PERIOD_MS); //to give it a second to calibrate
+    int current = GetDegrees();
+    int target = (current + 90)%360; //target is same as now + 90
+
+    int left = 0;
+    int right = 0;
+    int delta;
+
+    //pid loop while angle not at target
+    while(abs(target - current) > 1) {
+      SimpleGyroNavigation();
+
+      current = GetDegrees();
+      error = target - current;
+      error_total += error;
+
+      delta = Kp*error + Ki*error_total + Kd*(error-error_last);
+
+      int out_left = max(-80, min(left + delta, 80));
+      int out_right = max(-80, min(right - delta, 80));
+
+      //visualize motors
+      if (out_left >= 0) {
+        SetPixelRGB(EYE_LEFT, 0, out_left, 0);
+      } else {  //red for reverse
+        SetPixelRGB(EYE_LEFT, out_left, 0, 0);
+      }
+      if (out_right >= 0) {
+        SetPixelRGB(EYE_RIGHT, 0, out_right, 0);
+      } else {  //red for reverse
+        SetPixelRGB(EYE_RIGHT, out_right, 0, 0);
+      }
+      Motors(out_left, out_right);
+
+
+      vTaskDelay(interval*1000/portTICK_PERIOD_MS);
+      error_last = error;
+    }
+
+    //cleanup
+    Motors(0, 0);
+    OffEyes();
+
+
     vTaskResume(xEdgeHandler);
     vTaskSuspend(NULL);
-    // vTaskDelay(2000/port_TICK_PERIOD_MS);
   }
 }
 
-// void TaskEdge(void *pvParameters) {
-//   for(;;) {}
-//     //use PID control to go straight for x amount of time, then suspend self, start with simple P or PD control (by setting constants to 0)
-//     //turn all lights white if near no error, if veering right (above threshold) turn red, if left turn them a light blue.
-
-//     //probably use this while loop for pid?
-//     while(/*maybe time based?*/) {
-//       //Use "Motors(left, right", has range [-200,+200] and you should cap any PID commands to this for sure, if not [0,200]
-//       //There is a ringo function PresentHeading but it does not loop at 360degrees and it requires lots of other ringo functions which are confusing. 
-//     }
-//   }
-
-// }
-
-// void TaskCorner(void *pvParameters) {
-//   for(;;){
-//   //use functions from navigation.ino, navigation.h to turn 90 degrees right
-//   // ask about these if you are not sure, Ringo functions are super weird and do not always fit perfectly with an RTOS
-//   }
-// }
-
-
-
-
-  // xTaskCreate(TaskTurn, "turn", 128, NULL, 2, &xTurnHandler);
-  // xTaskCreate(TaskLight, "light", 128, NULL, 1, NULL);
-  // xTaskCreate(TaskForward, "forward", 128, NULL, 1, &xForwardHandler);
-  // xTaskCreate(TaskTest, "test", 128, NULL, 5, NULL);
-
-  // vTaskSuspend(xTurnHandler);
-
-
+int GetDegreesMod() {
+  return (GetDegrees() % 360);
+}
 
 // void TaskTurn(void *pvParameters) {
 
