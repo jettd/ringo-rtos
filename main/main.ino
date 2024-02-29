@@ -1,17 +1,10 @@
 #include <Arduino_FreeRTOS.h>
 #include "RingoHardware.h"
+#include "Navigation.h"
 
-char edge;
-TaskHandle_t xRandomWalkHandle;
-TaskHandle_t xTaskRickRollHandle;
-
-void taskLights( void *pvParameters);
-void taskIRLights( void *pvParameters);
-void taskRandomWalk( void*pvParameters);
-void taskFancyLights(void *pvParameters);
-void taskRickRoll(void *pvParameters);
-void taskSense(void *pvParameters);
-void taskIRLights(void *pvParameters);
+TaskHandle_t xEdgeHandler;
+TaskHandle_t xCornerHandler;
+volatile int target;
 
 void setup(){
   HardwareBegin();        //initialize Ringo's brain to work with his circuitry
@@ -19,252 +12,194 @@ void setup(){
   RestartTimer();
   RxIRRestart(4);
   ResetLookAtEdge();      //Zero LookAtEdge() avg     
+  PlayStartChirp();
+  NavigationBegin();
+  // Serial.begin(9600);
+  SetAllPixelsRGB(0, 0, 0);
 
-  xTaskCreate(TaskLights, "rainbow", 128, NULL, 2, NULL);
-  xTaskCreate(TaskRandomWalk, "rwalk", 128, NULL, 1, &xRandomWalkHandle);
-  xTaskCreate(TaskRickRoll, "rick", 128, NULL, 3, &xTaskRickRollHandle);
-  xTaskCreate(TaskSense, "sense", 128, NULL, 11, NULL);
-  // xTaskCreate(TaskFancyLights, "lights", 128, NULL, 5, NULL);
-  // vTaskSuspend(xTaskRickRollHandle);
-  // xTaskCreate(TaskIRLights, "ir", 128, NULL, 15, NULL);
+  xTaskCreate(TaskEdge, "edge", 128, NULL, 1, &xEdgeHandler);
+  xTaskCreate(TaskCorner, "corner", 128, NULL, 1, &xCornerHandler);
+  // xTaskCreate(TaskTest, "test", 128, NULL, 10, NULL);
+
+  
+  vTaskSuspend(xCornerHandler);
 }
 
-void TaskIRLights(void *pvParameters) {
-  (void) pvParameters;
-  for(;;) {
-    if(IsIRDone()) {
-      cli();
-      byte ir_button = GetIRButton();
-      if(ir_button == 1) {
-        SetAllPixelsRGB(100, 100, 100);
-        vTaskResume(xTaskRickRollHandle);
-      } else if (ir_button == 19) {
-        SetPixelRGB(TAIL_BOTTOM, 0, 100, 0);
-      } else if (ir_button == 20) {
-        SetPixelRGB(TAIL_BOTTOM, 0, 0, 100);
-      }
-      sei();
-    }
-    vTaskDelay(100/portTICK_PERIOD_MS);
-  }
-}
+void TaskEdge(void* pvParameters) {
+  NavigationBegin();
 
-void TaskSense(void *pvParameters) { // Aperiodic handler task when we sense somemthing
-  (void) pvParameters;
-  for(;;){
-    edge = LookForEdge();
-    vTaskDelay(100/portTICK_PERIOD_MS);
-    if FrontEdgeDetected(edge){
-      SetAllPixelsRGB(0,100,100);
-      vTaskSuspend(xRandomWalkHandle);         // Suspend random walk
-      Motors(-50,-50);
-      delay(1000);
-      vTaskResume(xRandomWalkHandle);         // Restart running random walk
-    } else{
-      SetAllPixelsRGB(100,0,0);
-    }
-
-    vTaskDelay(100/portTICK_PERIOD_MS);    
-  }
-}
-
-void TaskLights(void *pvParameters) { // Periodic Task
-  (void) pvParameters;
   for (;;) {
-    SetAllPixelsRGB(0,0,0);
-    vTaskDelay(100/portTICK_PERIOD_MS);
-    for(int i =0; i < 6; i++){
-      SetPixelRGB(i, 80, 0, 0);
+    Motors(0, 0);
+    SimpleGyroNavigation();
+    SetPixelRGB(TAIL_TOP, 50, 0, 0);
+    float duration = 5;
+    float interval = 0.1;
+    //pid loop
+    float Kp = 5.0;
+    float Ki = 0.0;
+    float Kd = 0.0;
+
+    int error = 0;
+    int error_last = 0;
+    int error_total = 0;
+    ZeroNavigation();
+    int target = GetDegrees(); //target is same as now
+
+    int left = 30;
+    int right = 30;
+    int delta;
+
+    //pid loop
+    for (float time = duration; time > 0.0; time -= interval) {
+      SimpleGyroNavigation();
+      error = target - GetDegrees();
+      error_total += error;
+
+      delta = Kp*error + Ki*error_total + Kd*error_last;
+
+      int out_left = max(0, min(left + delta, 60));
+      int out_right = max(0, min(right - delta, 60));
+
+      //visualize motors
+      SetPixelRGB(EYE_LEFT, 0, 0, out_left);
+      SetPixelRGB(EYE_RIGHT, 0, 0, out_right);
+      Motors(out_left, out_right);
+
+
+      vTaskDelay(interval*1000/portTICK_PERIOD_MS);
+      error_last = error;
     }
-    vTaskDelay(100/portTICK_PERIOD_MS);
-    for(int i =0; i < 6; i++){
-      SetPixelRGB(i, 80, 80, 0);
-    }
-    vTaskDelay(100/portTICK_PERIOD_MS);
-    for(int i =0; i < 6; i++){
-      SetPixelRGB(i, 0, 80, 0);
-    }
-    vTaskDelay(100/portTICK_PERIOD_MS);
-    for(int i =0; i < 6; i++){
-      SetPixelRGB(i, 0, 80, 80);
-    }
-    vTaskDelay(100/portTICK_PERIOD_MS);
-    for(int i =0; i < 6; i++){
-      SetPixelRGB(i, 0, 0, 80);
-    }
-    vTaskDelay(100/portTICK_PERIOD_MS);
-    for(int i =0; i < 6; i++){
-      SetPixelRGB(i, 80, 0, 80);
-    }
-    vTaskDelay(100/portTICK_PERIOD_MS);
-    for(int i =0; i < 6; i++){
-      SetPixelRGB(i, 80, 80, 80);
-    }
-    vTaskDelay(100/portTICK_PERIOD_MS);
-    SetAllPixelsRGB(0,0,0);
-    vTaskDelay(4000/portTICK_PERIOD_MS);
+
+    //cleanup
+    Motors(0, 0);
+    OffEyes();
+
+    //task swap
+    vTaskResume(xCornerHandler);
+    vTaskSuspend(NULL);
   }
 }
 
-void TaskRickRoll(void *pvParameters) { // Sporadic Task, don't respond to button press until song is over 
-  (void) pvParameters;
-  for(;;) {
-    int bpm = 114; //reference
-    int note = 2105/portTICK_PERIOD_MS;
-    int h_note = note/2;
-    int q_note = note/4;
-    int e_note = note/8;
-    int s_note = note/16;
-    double dot = 1.5;
-    int amp = 20;
+void TaskCorner(void* pvParameters) {
+  NavigationBegin();
 
-    //s s s s e. e. q. 
-    // never gonna give you up
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_B5, amp);
-    vTaskDelay(e_note*dot); 
-    PlayChirp(NOTE_B5, amp);
-    vTaskDelay(e_note*dot); 
-    PlayChirp(NOTE_A5, amp);
-    vTaskDelay(q_note*dot);
+  for (;;) {
+    SetPixelRGB(TAIL_TOP, 0, 50, 0);
+    //replace this 2 second delay with the correct use of navigation library to turn 90 degrees right.
+    vTaskDelay(3000/portTICK_PERIOD_MS);
 
-    //never gonna let you down
-    // s s s s e. e. e. s e 
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(s_note); 
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_A5, amp);
-    vTaskDelay(e_note*dot); 
-    PlayChirp(NOTE_A5, amp);
-    vTaskDelay(e_note*dot);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(e_note*dot);
-    PlayChirp(NOTE_F4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(e_note);
 
-    //never gonna run around and desert you    
-    // s s s s q e e. s e e e q h 
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(s_note); 
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_A5, amp);
-    vTaskDelay(e_note);
-    PlayChirp(NOTE_F4, amp);
-    vTaskDelay(e_note*dot);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(e_note);
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(e_note);
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(e_note);
-    PlayChirp(NOTE_A5, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(h_note);
-
-    // never gonna make you cry
-    // s s s s e. e. q. 
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_B5, amp);
-    vTaskDelay(e_note*dot); 
-    PlayChirp(NOTE_B5, amp);
-    vTaskDelay(e_note*dot); 
-    PlayChirp(NOTE_A5, amp);
-    vTaskDelay(q_note*dot);
-
-    //never gonna say goodbye
-    // s s s s q e e. s e 
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_D5, amp);
-    vTaskDelay(q_note); 
-    PlayChirp(NOTE_F4, amp);
-    vTaskDelay(e_note); 
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(e_note*dot);
-    PlayChirp(NOTE_F4, amp);
-    vTaskDelay(s_note); 
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(e_note);
-
-    //never gonna tell a lie and hurt you
-    // s s s s q e e. s q e q h
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_A5, amp);
-    vTaskDelay(e_note);
-    PlayChirp(NOTE_F4, amp);
-    vTaskDelay(e_note*dot);
-    PlayChirp(NOTE_E4, amp);
-    vTaskDelay(s_note);
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_D4, amp);
-    vTaskDelay(e_note);
-    PlayChirp(NOTE_A5, amp);
-    vTaskDelay(q_note);
-    PlayChirp(NOTE_G4, amp);
-    vTaskDelay(h_note);
-
-    OffChirp();
-    vTaskDelay(4000/portTICK_PERIOD_MS);
+    ZeroNavigation();
+    vTaskResume(xEdgeHandler);
+    vTaskSuspend(NULL);
+    // vTaskDelay(2000/port_TICK_PERIOD_MS);
   }
 }
 
-void TaskRandomWalk(void *pvParameters) { 
-  TickType_t xLastWakeTime = xTaskGetTickCount();
+// void TaskEdge(void *pvParameters) {
+//   for(;;) {}
+//     //use PID control to go straight for x amount of time, then suspend self, start with simple P or PD control (by setting constants to 0)
+//     //turn all lights white if near no error, if veering right (above threshold) turn red, if left turn them a light blue.
 
-  for(;;) {
-    int l = random(20, 50);
-    int r = random(20, 50);
-    Motors(l, r);
-    vTaskDelayUntil(&xLastWakeTime, 500/portTICK_PERIOD_MS);
-  }
-}
+//     //probably use this while loop for pid?
+//     while(/*maybe time based?*/) {
+//       //Use "Motors(left, right", has range [-200,+200] and you should cap any PID commands to this for sure, if not [0,200]
+//       //There is a ringo function PresentHeading but it does not loop at 360degrees and it requires lots of other ringo functions which are confusing. 
+//     }
+//   }
+
+// }
+
+// void TaskCorner(void *pvParameters) {
+//   for(;;){
+//   //use functions from navigation.ino, navigation.h to turn 90 degrees right
+//   // ask about these if you are not sure, Ringo functions are super weird and do not always fit perfectly with an RTOS
+//   }
+// }
+
+
+
+
+  // xTaskCreate(TaskTurn, "turn", 128, NULL, 2, &xTurnHandler);
+  // xTaskCreate(TaskLight, "light", 128, NULL, 1, NULL);
+  // xTaskCreate(TaskForward, "forward", 128, NULL, 1, &xForwardHandler);
+  // xTaskCreate(TaskTest, "test", 128, NULL, 5, NULL);
+
+  // vTaskSuspend(xTurnHandler);
+
+
+
+// void TaskTurn(void *pvParameters) {
+
+//   for(;;) {
+//     TickType_t xLastWakeTime = xTaskGetTickCount();
+//     vTaskSuspend(xForwardHandler);
+//     SetPixelRGB(TAIL_BOTTOM, 50, 0, 0);
+//     ZeroNavigation();
+//     RotateAccurate(90,1000);
+//     SimpleGyroNavigation();
+//     target = PresentHeading();
+//     vTaskResume(xForwardHandler);
+//     vTaskDelayUntil(&xLastWakeTime, 4000/portTICK_PERIOD_MS);
+//   }
+// }
+
+// void TaskForward(void *pvParameters) { 
+//   // target = PresentHeading(); old
+//   NavigationBegin();
+
+//   for(;;) {
+//     vTaskSuspend(xTurnHandler);
+//     int l_speed = 40;
+//     int r_speed = 40;
+//     int error;
+//     int P = 5;
+//     int output;
+//     TickType_t xLastWakeTime = xTaskGetTickCount();
+//     for (int i = 0; i < 30; i++) {
+//       if (i == 0) {
+//         error = 0;
+//         SetPixelRGB(TAIL_BOTTOM, 50, 0, 20);
+//       } else {
+//         SimpleGyroNavigation();
+//         error = target - PresentHeading();
+//         SetPixelRGB(TAIL_BOTTOM, 50, 20, 0);
+//       }
+//       if(error > 0) {
+//         SetPixelRGB(TAIL_TOP, 0, 50, 0);
+//       } else {
+//         SetPixelRGB(TAIL_TOP, 0, 0, 50);
+//       }
+//       output = P*error;
+
+//       l_speed += output;
+//       r_speed -= output;
+//       l_speed = max(l_speed, 0);
+//       l_speed = min(l_speed, 150);
+//       r_speed = max(l_speed, 0);
+//       r_speed = min(l_speed, 150);
+      
+//       Motors(l_speed, r_speed);
+//       vTaskDelayUntil(&xLastWakeTime, 100/portTICK_PERIOD_MS);
+//     }
+//     // Motors(0,0);
+//     vTaskResume(xTurnHandler);
+//     vTaskDelay(1000/portTICK_PERIOD_MS);
+//   }
+// }
+
+// void TaskTest(void *pvParameters) {
+  // int x;
+  // SetPixelRGB(TAIL_TOP, 30, 30, 30);
+  // NavigationBegin();
+
+  // for(;;) {
+  //   SimpleGyroNavigation();
+  //   x = GetDegrees();
+  //   SetAllPixelsRGB(x, x, x);
+  //   vTaskDelay(10000/portTICK_PERIOD_MS);
+  // }
+// }
 
 void loop(){ 
 } // end of loop() function
