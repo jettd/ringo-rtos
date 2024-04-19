@@ -37,10 +37,29 @@ void loop() {
 void TaskSense(void *pvParameters) {
   TickType_t xLastWakeTime = xTaskGetTickCount();
   ResetLookAtEdge();
+  int a[100];
+  int b[100];
+  int averageTimeMs
 
-  while (1) {
+  // while (1) {
+  //   edge = LookForEdge();
+  //   vTaskDelayUntil(&xLastWakeTime, TaskSensePeriod);
+  // }
+  for (int i = 0; i < 100; i++) {
+    b = millis();
     edge = LookForEdge();
+    a = millis();
     vTaskDelayUntil(&xLastWakeTime, TaskSensePeriod);
+  }
+  vTaskSuspend(&TaskMotorHandle);
+  PlayStartChirp();
+  delay(1000);
+  for (int i = 0; i < 100; i++) {
+    averageTimeMs += (a[i] + b[i])/200
+  }
+  for (int i = 0; i < averageTimeMs; i++) {
+    OnEyes(50, 50, 50);
+    delay(100);
   }
 }
 
